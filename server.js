@@ -2,20 +2,31 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+// 🔥 IMPORTANT: add fetch support
+const fetch = (...args) => import("node-fetch").then(({default: fetch}) => fetch(...args));
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test route
+// ===== TEST ROUTE =====
 app.get("/", (req, res) => {
   res.send("Server is working 🚀");
 });
 
-// AI route
+// ===== AI GENERATOR =====
 app.post("/generate", async (req, res) => {
   const { idea, goal, platform } = req.body;
 
+  // 🧠 VALIDATION
+  if (!idea || !goal) {
+    return res.status(400).json({ error: "Missing idea or goal" });
+  }
+
   try {
+
+    console.log("Incoming request:", { idea, goal, platform });
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -28,17 +39,20 @@ app.post("/generate", async (req, res) => {
           {
             role: "user",
             content: `
-Create a marketing plan:
+Create a HIGH-CONVERTING marketing plan:
 
-Idea: ${idea}
+Business Idea: ${idea}
 Goal: ${goal}
 Platform: ${platform}
 
+Make it powerful and detailed.
+
 Include:
-- Hook
-- Strategy
-- Video script
-- Caption
+1. 🔥 Hook (attention grabbing)
+2. 🎯 Strategy
+3. 🎬 Short Video Script
+4. 📱 Caption (viral style)
+5. 🚀 Growth tips
             `
           }
         ]
@@ -47,15 +61,32 @@ Include:
 
     const data = await response.json();
 
-    res.json({
-      result: data.choices[0].message.content
-    });
+    // 🧠 DEBUG LOG
+    console.log("OpenAI response:", data);
+
+    // ❗ HANDLE OPENAI ERROR
+    if (!data.choices || !data.choices[0]) {
+      return res.status(500).json({
+        error: "OpenAI failed",
+        details: data
+      });
+    }
+
+    const output = data.choices[0].message.content;
+
+    // ✅ FINAL RESPONSE
+    res.json({ result: output });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("SERVER ERROR:", err);
+    res.status(500).json({
+      error: "Server crashed",
+      message: err.message
+    });
   }
 });
 
+// ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
