@@ -2,10 +2,9 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-// 🔥 IMPORTANT: add fetch support
-const fetch = (...args) => import("node-fetch").then(({default: fetch}) => fetch(...args));
-
 const app = express();
+
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
@@ -14,19 +13,19 @@ app.get("/", (req, res) => {
   res.send("Server is working 🚀");
 });
 
-// ===== AI GENERATOR =====
+// ===== AI ROUTE =====
 app.post("/generate", async (req, res) => {
   const { idea, goal, platform } = req.body;
 
-  // 🧠 VALIDATION
+  // ✅ Validate input
   if (!idea || !goal) {
     return res.status(400).json({ error: "Missing idea or goal" });
   }
 
   try {
+    console.log("Incoming:", { idea, goal, platform });
 
-    console.log("Incoming request:", { idea, goal, platform });
-
+    // ✅ Use built-in fetch (NO node-fetch needed)
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -39,20 +38,18 @@ app.post("/generate", async (req, res) => {
           {
             role: "user",
             content: `
-Create a HIGH-CONVERTING marketing plan:
+Create a powerful marketing plan:
 
-Business Idea: ${idea}
+Idea: ${idea}
 Goal: ${goal}
 Platform: ${platform}
 
-Make it powerful and detailed.
-
 Include:
-1. 🔥 Hook (attention grabbing)
-2. 🎯 Strategy
-3. 🎬 Short Video Script
-4. 📱 Caption (viral style)
-5. 🚀 Growth tips
+- Hook
+- Strategy
+- Video Script
+- Caption
+- Growth tips
             `
           }
         ]
@@ -61,24 +58,24 @@ Include:
 
     const data = await response.json();
 
-    // 🧠 DEBUG LOG
     console.log("OpenAI response:", data);
 
-    // ❗ HANDLE OPENAI ERROR
-    if (!data.choices || !data.choices[0]) {
+    // ❌ Handle OpenAI error
+    if (!data.choices) {
       return res.status(500).json({
         error: "OpenAI failed",
         details: data
       });
     }
 
-    const output = data.choices[0].message.content;
+    const result = data.choices[0].message.content;
 
-    // ✅ FINAL RESPONSE
-    res.json({ result: output });
+    // ✅ Send to frontend
+    res.json({ result });
 
   } catch (err) {
     console.error("SERVER ERROR:", err);
+
     res.status(500).json({
       error: "Server crashed",
       message: err.message
